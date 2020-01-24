@@ -8,6 +8,7 @@ io.on('connection', (client) => {
 
     client.on('entrarChat', (data, callback) => {
 
+
         if (!data.nombre || !data.sala) {
             return callback({
                 error: true,
@@ -20,19 +21,22 @@ io.on('connection', (client) => {
         usuarios.agregarPersona(client.id, data.nombre, data.sala);
 
         client.broadcast.to(data.sala).emit('listaPersona', usuarios.getPersonasPorSala(data.sala));
+        client.broadcast.to(data.sala).emit('crearMensaje', crearMensaje('Administrador', `${ data.nombre } se unió`));
 
-        return callback(usuarios.getPersonasPorSala(data.sala));
+        callback(usuarios.getPersonasPorSala(data.sala));
 
     });
 
-    client.on('crearMensaje', (data) => {
+    client.on('crearMensaje', (data, callback) => {
 
         let persona = usuarios.getPersona(client.id);
 
         let mensaje = crearMensaje(persona.nombre, data.mensaje);
-        client.broadcast.to(data.sala).emit('crearMensaje', mensaje);
+        client.broadcast.to(persona.sala).emit('crearMensaje', mensaje);
 
+        callback(mensaje);
     });
+
 
     client.on('disconnect', () => {
 
@@ -44,8 +48,8 @@ io.on('connection', (client) => {
 
     });
 
-    // Mensajes Privados
-    client.on('mensajePrivado', (data) => {
+    // Mensajes privados
+    client.on('mensajePrivado', data => {
 
         let persona = usuarios.getPersona(client.id);
         client.broadcast.to(data.para).emit('mensajePrivado', crearMensaje(persona.nombre, data.mensaje));
